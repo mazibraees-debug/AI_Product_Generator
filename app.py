@@ -1,84 +1,65 @@
 import os
+import json
 from flask import Flask, render_template, request
-import pandas as pd
 from generator import generate_content
 
 app = Flask(__name__)
 
-# Cloudinary config
-CLOUD_NAME = "dbgpn8lq8"
-CLOUD_FOLDER = "products"
+# -------------------------
+# Load JSON dataset (UTF-8)
+# -------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(BASE_DIR, "swag_products.json")
 
-# Load Excel file safely
-try:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_FILE = os.path.join(BASE_DIR, "swag_products.xlsx")
-    data = pd.read_excel(DATA_FILE, dtype=str)
-    print("✅ Dataset Loaded Successfully")
-    print("Total products:", len(data))
-except Exception as e:
-    print("❌ Failed to load dataset:", e)
-    data = pd.DataFrame()
+with open(DATA_FILE, "r", encoding="utf-8") as f:
+    data = json.load(f)
 
+print("✅ Dataset loaded:", len(data), "products")
+
+# -------------------------
+# Homepage
+# -------------------------
 @app.route('/')
 def home():
-    try:
-        products = data.to_dict(orient="records")
-        return render_template("index.html", products=products)
-    except Exception as e:
-        return f"Error loading homepage: {e}", 500
+    return render_template("index.html", products=data)
 
+# -------------------------
+# Generate product content
+# -------------------------
 @app.route('/generate', methods=['POST'])
 def generate():
-    try:
-        product_code = str(request.form.get('code')).strip()
+    product_code = request.form.get('code')
+    product = next((p for p in data if p["ItemCode"] == product_code), None)
+    
+    if not product:
+        return "Product not found", 404
 
-        product_row = data[data['ItemCode'] == product_code]
-        if product_row.empty:
-            return "Product not found", 404
+    content = generate_content(
+        product["ItemName"],
+        product["Brand"],
+        product["MainCategory"],
+        product["SubCategory"],
+        product["Color"],
+        product["LongDescription"]
+    )
 
-        product = product_row.iloc[0]
+    return render_template(
+        "result.html",
+        product_name=product["ItemName"],
+        brand=product["Brand"],
+        category=product["MainCategory"],
+        subcategory=product["SubCategory"],
+        colors=[product["Color"]],
+        description=product["LongDescription"],
+        print_technique=product.get("DefaultPrintTechnique", ""),
+        print_location=product.get("DefaultPrintLoc", ""),
+        print_area=product.get("MaxPrintAreaDefault", ""),
+        image_file=f"https://res.cloudinary.com/dbgpn8lq8/image/upload/products/{product_code}.png",
+        content=content
+    )
 
-        product_name = product['ItemName']
-        brand = product['Brand']
-        category = product['MainCategory']
-        subcategory = product['SubCategory']
-        color = product['Color']
-        description = product['LongDescription']
-
-        content = generate_content(
-            product_name,
-            brand,
-            category,
-            subcategory,
-            color,
-            description
-        )
-
-        colors = data[data['ItemCode'] == product_code]['Color'].dropna().unique().tolist()
-
-        print_technique = product.get('DefaultPrintTechnique', '')
-        print_location = product.get('DefaultPrintLoc', '')
-        print_area = product.get('MaxPrintAreaDefault', '')
-
-        image_file = f"https://res.cloudinary.com/{CLOUD_NAME}/image/upload/{CLOUD_FOLDER}/{product_code}.png"
-
-        return render_template(
-            "result.html",
-            product_name=product_name,
-            brand=brand,
-            category=category,
-            subcategory=subcategory,
-            colors=colors,
-            description=description,
-            print_technique=print_technique,
-            print_location=print_location,
-            print_area=print_area,
-            image_file=image_file,
-            content=content
-        )
-    except Exception as e:
-        return f"Error generating product: {e}", 500
-
+# -------------------------
+# Run locally
+# -------------------------
 if __name__ == "__main__":
     app.run(debug=True)
