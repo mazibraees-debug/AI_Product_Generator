@@ -1,11 +1,14 @@
 import random
 
 def generate_content(product_name, brand, category, subcategory, color, long_description):
+    """
+    Generate AI-style content for a product.
+    Returns a dictionary with title, description, and features.
+    """
 
     # -------------------------
     # Title Templates
     # -------------------------
-
     title_templates = [
         f"{brand} {product_name} – Premium {subcategory} in {color}",
         f"{product_name} by {brand} | Stylish {category} for Promotions",
@@ -14,11 +17,9 @@ def generate_content(product_name, brand, category, subcategory, color, long_des
         f"{product_name} ({color}) | Premium {subcategory} for Corporate Gifts"
     ]
 
-
     # -------------------------
     # Description Templates
     # -------------------------
-
     description_templates = [
         f"The {brand} {product_name} is a premium {subcategory} designed for modern promotional campaigns. "
         f"This {color} {category} offers durability, style, and excellent branding opportunities. "
@@ -33,27 +34,21 @@ def generate_content(product_name, brand, category, subcategory, color, long_des
         f"{long_description}"
     ]
 
-
     # -------------------------
     # Feature Templates
     # -------------------------
-
     features = [
-
         f"Premium quality {subcategory}",
         f"Elegant {color} design",
         f"Trusted brand: {brand}",
         "Ideal for promotional campaigns",
         "Perfect for corporate giveaways",
         "Durable and lightweight construction"
-
     ]
-
 
     # -------------------------
     # Random Selection
     # -------------------------
-
     title = random.choice(title_templates)
     description = random.choice(description_templates)
 
